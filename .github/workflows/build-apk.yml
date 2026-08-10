@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -34,7 +35,9 @@ jobs:
             zlib1g-dev \
             libncurses5-dev \
             libncursesw5-dev \
-            cmake
+            cmake \
+            libffi-dev \
+            libssl-dev
 
       - name: Install Buildozer
         run: |
@@ -43,7 +46,7 @@ jobs:
 
       - name: Build APK
         run: |
-           yes | buildozer android debug
+          yes | buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
