@@ -5,7 +5,7 @@ import sqlite3
 import json
 import os
 import hashlib
-import secrets
+
 
 DB = os.path.join(os.path.dirname(__file__), "data.db")
 
@@ -46,7 +46,6 @@ def initialize_database():
     """)
 
     if cur.execute("SELECT COUNT(*) FROM fields").fetchone()[0] == 0:
-
         default_fields = [
             ("mobile", "شماره موبایل"),
             ("first_name", "نام"),
@@ -86,7 +85,6 @@ def get_fields():
 class LoginScreen(Screen):
 
     def check_password(self):
-
         password = self.ids.password.text
 
         db = database()
@@ -97,17 +95,15 @@ class LoginScreen(Screen):
 
         db.close()
 
+        # اولین ورود
         if row is None:
-
-            self.manager.current = "main"
-
             db = database()
 
             db.execute(
                 """
                 INSERT OR REPLACE INTO settings
-                (id,password_hash)
-                VALUES (1,?)
+                (id, password_hash)
+                VALUES (1, ?)
                 """,
                 (hash_password(password),)
             )
@@ -115,30 +111,25 @@ class LoginScreen(Screen):
             db.commit()
             db.close()
 
-            return
-
-        if hash_password(password) == row[0]:
-
             self.ids.error.text = ""
             self.manager.current = "main"
+            return
 
+        # ورود با رمز موجود
+        if hash_password(password) == row[0]:
+            self.ids.error.text = ""
+            self.manager.current = "main"
         else:
-
             self.ids.error.text = "رمز عبور اشتباه است."
 
 
 class MainScreen(Screen):
 
     def search(self):
-
         mobile = self.ids.mobile.text.strip()
 
         if not mobile:
-
-            self.ids.result.text = (
-                "شماره موبایل را وارد کنید."
-            )
-
+            self.ids.result.text = "شماره موبایل را وارد کنید."
             return
 
         db = database()
@@ -151,11 +142,9 @@ class MainScreen(Screen):
         db.close()
 
         if not row:
-
             self.ids.result.text = (
                 "اطلاعاتی برای این شماره وجود ندارد."
             )
-
             return
 
         data = json.loads(row[0])
@@ -163,7 +152,6 @@ class MainScreen(Screen):
         result = []
 
         for key, name in get_fields():
-
             result.append(
                 f"{name}: {data.get(key, '')}"
             )
@@ -174,12 +162,10 @@ class MainScreen(Screen):
 class EntryScreen(Screen):
 
     def on_pre_enter(self):
-
         from kivy.uix.label import Label
         from kivy.uix.textinput import TextInput
 
         self.ids.form.clear_widgets()
-
         self.inputs = {}
 
         for key, name in get_fields():
@@ -202,34 +188,28 @@ class EntryScreen(Screen):
 
             self.inputs[key] = field
 
-
     def save_record(self):
 
         data = {}
 
         for key, field in self.inputs.items():
-
             data[key] = field.text
-
 
         mobile = data.get("mobile", "").strip()
 
         if not mobile:
-
             self.ids.status.text = (
                 "شماره موبایل الزامی است."
             )
-
             return
-
 
         db = database()
 
         db.execute(
             """
             INSERT OR REPLACE INTO records
-            (mobile,data)
-            VALUES (?,?)
+            (mobile, data)
+            VALUES (?, ?)
             """,
             (
                 mobile,
@@ -251,12 +231,9 @@ class EntryScreen(Screen):
 class FieldsScreen(Screen):
 
     def on_pre_enter(self):
-
         self.refresh()
 
-
     def refresh(self):
-
         from kivy.uix.boxlayout import BoxLayout
         from kivy.uix.textinput import TextInput
         from kivy.uix.button import Button
@@ -274,7 +251,6 @@ class FieldsScreen(Screen):
 
         db.close()
 
-
         for field_id, key, name in rows:
 
             row = BoxLayout(
@@ -288,16 +264,14 @@ class FieldsScreen(Screen):
 
             button = Button(
                 text="ذخیره",
-                size_hint_x=.25
+                size_hint_x=0.25
             )
-
 
             def save_name(
                 instance,
                 fid=field_id,
                 inp=text
             ):
-
                 db = database()
 
                 db.execute(
@@ -315,7 +289,6 @@ class FieldsScreen(Screen):
                 db.commit()
                 db.close()
 
-
             button.bind(
                 on_release=save_name
             )
@@ -324,7 +297,6 @@ class FieldsScreen(Screen):
             row.add_widget(button)
 
             self.ids.field_list.add_widget(row)
-
 
     def add_field(self):
 
@@ -340,16 +312,14 @@ class FieldsScreen(Screen):
         if not key or not name:
             return
 
-
         db = database()
 
         try:
-
             db.execute(
                 """
                 INSERT INTO fields
-                (field_key,field_name)
-                VALUES (?,?)
+                (field_key, field_name)
+                VALUES (?, ?)
                 """,
                 (
                     key,
@@ -360,7 +330,6 @@ class FieldsScreen(Screen):
             db.commit()
 
         except sqlite3.IntegrityError:
-
             pass
 
         db.close()
@@ -388,7 +357,6 @@ ScreenManager:
     BoxLayout:
 
         orientation: "vertical"
-
         padding: 30
         spacing: 15
 
@@ -424,7 +392,6 @@ ScreenManager:
     BoxLayout:
 
         orientation: "vertical"
-
         padding: 20
         spacing: 12
 
@@ -472,40 +439,26 @@ ScreenManager:
     BoxLayout:
 
         orientation: "vertical"
-
         padding: 15
         spacing: 8
 
         ScrollView:
 
             GridLayout:
-
                 id: form
-
                 cols: 1
-
                 spacing: 6
-
                 size_hint_y: None
-
                 height: self.minimum_height
 
-
         Label:
-
             id: status
-
             text: ""
-
             size_hint_y: None
-
             height: 35
 
-
         BoxLayout:
-
             size_hint_y: None
-
             height: 50
 
             Button:
@@ -524,82 +477,48 @@ ScreenManager:
     BoxLayout:
 
         orientation: "vertical"
-
         padding: 15
         spacing: 8
 
-
         Label:
-
             text: "مدیریت فیلدها"
-
             font_size: 24
-
             size_hint_y: None
-
             height: 45
-
 
         ScrollView:
 
             GridLayout:
-
                 id: field_list
-
                 cols: 1
-
                 spacing: 6
-
                 size_hint_y: None
-
                 height: self.minimum_height
 
-
         TextInput:
-
             id: new_key
-
             hint_text: "نام داخلی فیلد، مثال: company"
-
             multiline: False
-
             size_hint_y: None
-
             height: 45
-
 
         TextInput:
-
             id: new_name
-
             hint_text: "عنوان فیلد، مثال: شرکت"
-
             multiline: False
-
             size_hint_y: None
-
             height: 45
-
 
         Button:
-
             text: "افزودن فیلد"
-
             size_hint_y: None
-
             height: 50
-
             on_release: root.add_field()
 
-
         Button:
-
             text: "بازگشت"
-
             size_hint_y: None
-
             height: 50
-
             on_release: app.root.current = "main"
 
 """
@@ -608,12 +527,9 @@ ScreenManager:
 class MobileDataApp(App):
 
     def build(self):
-
         initialize_database()
-
         return Builder.load_string(KV)
 
 
 if __name__ == "__main__":
-
     MobileDataApp().run()
