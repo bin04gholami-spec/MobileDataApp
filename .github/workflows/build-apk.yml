@@ -1,4 +1,3 @@
-
 name: Build Android APK
 
 on:
@@ -9,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-22.04
 
     steps:
@@ -17,19 +15,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
 
       - name: Install system packages
         run: |
@@ -48,18 +43,38 @@ jobs:
             libncursesw5-dev \
             cmake
 
-
       - name: Install Python packages
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install buildozer
           python -m pip install "cython<3"
 
+      - name: Prepare Android SDK
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+
+          mkdir -p "$SDK/licenses"
+
+          if [ -x "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -x "$SDK/cmdline-tools/bin/sdkmanager" ]; then
+            SDKMANAGER="$SDK/cmdline-tools/bin/sdkmanager"
+          else
+            echo "sdkmanager not found yet."
+            echo "Buildozer will initialize the Android SDK."
+            exit 0
+          fi
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" "platform-tools" "build-tools;37.0.0"
 
       - name: Build APK
         run: |
-          buildozer android debug -v
-
+          yes | buildozer android debug -v
 
       - name: List generated files
         if: always()
@@ -67,11 +82,18 @@ jobs:
           echo "===== BIN ====="
           ls -lah bin/ || true
 
+          echo "===== BUILD TOOLS ====="
+          find "$HOME/.buildozer/android/platform/android-sdk/build-tools" \
+            -maxdepth 1 -type d -print 2>/dev/null || true
+
+          echo "===== AIDL ====="
+          find "$HOME/.buildozer/android/platform/android-sdk" \
+            -name aidl -type f -print 2>/dev/null || true
+
           echo "===== LOGS ====="
           find .buildozer -type f \
             \( -name "*.log" -o -name "*.txt" \) \
             -print | head -100 || true
-
 
       - name: Upload APK
         if: success()
@@ -80,7 +102,6 @@ jobs:
           name: MobileDataApp-APK
           path: bin/*.apk
           if-no-files-found: error
-
 
       - name: Upload Build Logs
         if: always()
